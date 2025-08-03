@@ -1,14 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-interface Movie {
-  title: string;
-  year: string;
-  imdbID: string;
-  type: string;
-  poster: string;
-}
+import { type Movie, searchMovies } from '../services';
 
 const MovieSearch: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,23 +55,20 @@ const MovieSearch: React.FC = () => {
     setHasSearched(true);
     
     try {
-      const response = await axios.get(
-        `https://localhost:7188/api/Movies/search/${encodeURIComponent(searchTerm)}`,
-        { signal: abortControllerRef.current.signal }
-      );
+      const searchResults = await searchMovies(searchTerm, abortControllerRef.current.signal);
       
-      if (response.data && response.data.search) {
-        // Filter out movies without posters and limit to 20 results
-        const filteredMovies = response.data.search
-          .filter((movie: Movie) => movie.poster && movie.poster !== "N/A")
-          .slice(0, 20);
-        setMovies(filteredMovies);
-        if (filteredMovies.length === 0) {
-          setError('No movies found with posters. Try a different search term.');
-        }
-      } else {
-        setMovies([]);
-        setError('No movies found. Try a different search term.');
+      // Additional client-side filtering to ensure no movies without posters are rendered
+      const moviesWithPosters = searchResults.filter(movie => {
+        return movie.poster && 
+               movie.poster !== "N/A" && 
+               movie.poster.trim() !== "" && 
+               movie.poster !== "null" && 
+               movie.poster !== "undefined";
+      });
+      
+      setMovies(moviesWithPosters);
+      if (moviesWithPosters.length === 0) {
+        setError('No movies found with posters. Try a different search term.');
       }
     } catch (error: any) {
       if (error.name !== 'CanceledError') {
@@ -171,7 +160,6 @@ const MovieSearch: React.FC = () => {
                 <div className="movie-info">
                   <h4 className="movie-title" title={movie.title}>{movie.title}</h4>
                   <p className="movie-year">{movie.year}</p>
-                  <p className="movie-type">{movie.type}</p>
                 </div>
               </div>
             ))}

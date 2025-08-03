@@ -109,7 +109,6 @@ const Watchlist: React.FC = () => {
                     {item.movieDetails?.title || `Movie ${item.imdbId}`}
                   </h3>
                   <p className="movie-year">{item.movieDetails?.year || 'Unknown Year'}</p>
-                  <p className="movie-type">{item.movieDetails?.type || 'movie'}</p>
                   
                   <div className="movie-actions">
                     <button

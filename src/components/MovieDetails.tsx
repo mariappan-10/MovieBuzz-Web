@@ -1,42 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWatchlist } from '../contexts/WatchlistContext';
-import axios from 'axios';
-
-interface MovieDetail {
-  title: string;
-  year: string;
-  rated: string;
-  released: string;
-  runtime: string;
-  genre: string;
-  director: string;
-  writer: string;
-  actors: string;
-  plot: string;
-  language: string;
-  country: string;
-  awards: string;
-  poster: string;
-  ratings: Array<{
-    source: string;
-    value: string;
-  }>;
-  metascore: string;
-  imdbRating: string;
-  imdbVotes: string;
-  imdbID: string;
-  type: string;
-  dvd: string;
-  boxOffice: string;
-  production: string;
-  website: string;
-}
+import { type MovieDetail, getMovieDetails, addToWatchlist } from '../services';
 
 const MovieDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const location = useLocation();
+  // const location = useLocation();
   const navigate = useNavigate();
   const { user, token } = useAuth();
   const { refreshWatchlist } = useWatchlist();
@@ -54,14 +24,8 @@ const MovieDetails: React.FC = () => {
         setIsLoading(true);
         setError('');
         
-        // Use the correct endpoint with imdbId as path parameter
-        const response = await axios.get(`https://localhost:7188/api/Movies/${id}`);
-        
-        if (response.data) {
-          setMovie(response.data);
-        } else {
-          setError('Movie details not found');
-        }
+        const movieData = await getMovieDetails(id);
+        setMovie(movieData);
       } catch (error: any) {
         if (error.response?.status === 404) {
           setError('Movie not found');
@@ -88,15 +52,14 @@ const MovieDetails: React.FC = () => {
 
     try {
       setIsAddingToWatchlist(true);
-      const response = await axios.post(`https://localhost:7188/api/Movies/add-to-watchlist?imdbId=${id}`, {}, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const success = await addToWatchlist(id, token);
 
-      if (response.status === 200) {
+      if (success) {
         setWatchlistMessage('Movie added to your watchlist!');
-        refreshWatchlist(); // Refresh the watchlist to include the new movie
+        refreshWatchlist();
+        setTimeout(() => setWatchlistMessage(''), 3000);
+      } else {
+        setWatchlistMessage('Failed to add to watchlist. Movie might already be in your list.');
         setTimeout(() => setWatchlistMessage(''), 3000);
       }
     } catch (error) {

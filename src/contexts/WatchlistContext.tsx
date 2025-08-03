@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import axios from 'axios';
+import { getWatchlist, removeFromWatchlist as removeFromWatchlistService, getMovieDetails } from '../services';
 
 interface WatchlistMovie {
   id: number;
   imdbId: string;
-  applicationUserId: string;
+  applicationUserId: string | null;
   movieDetails?: {
     title: string;
     year: string;
@@ -30,8 +30,7 @@ export const WatchlistProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [isLoading, setIsLoading] = useState(false);
   const { user, token } = useAuth();
 
-  // Add error state to prevent crashes
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
   const fetchWatchlist = async () => {
     if (!user || !token) {
@@ -43,17 +42,11 @@ export const WatchlistProvider: React.FC<{ children: ReactNode }> = ({ children 
       setIsLoading(true);
       setError(null);
       
-      const response = await axios.get('https://localhost:7188/api/Movies/display-watchlist', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const imdbIds = await getWatchlist(token);
 
 
-      // Process array of imdbId strings
-      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-        // Set basic watchlist items immediately (with loading state)
-        const basicWatchlistItems = response.data.map((imdbId: string, index: number) => ({
+      if (imdbIds && imdbIds.length > 0) {
+        const basicWatchlistItems = imdbIds.map((imdbId: string, index: number) => ({
           id: index + 1,
           imdbId: imdbId,
           applicationUserId: null,
@@ -67,24 +60,23 @@ export const WatchlistProvider: React.FC<{ children: ReactNode }> = ({ children 
         
         setWatchlist(basicWatchlistItems);
         
-        // Then fetch movie details for each imdbId
         const detailedItems = [];
-        for (let i = 0; i < response.data.length; i++) {
-          const imdbId = response.data[i];
+        for (let i = 0; i < imdbIds.length; i++) {
+          const imdbId = imdbIds[i];
           try {
-            const movieResponse = await axios.get(`https://localhost:7188/api/Movies/${imdbId}`);
+            const movieData = await getMovieDetails(imdbId);
             
             detailedItems.push({
               id: i + 1,
               imdbId: imdbId,
               applicationUserId: null,
               movieDetails: {
-                title: movieResponse.data?.title || 'Unknown Title',
-                year: movieResponse.data?.year || 'Unknown',
-                poster: (movieResponse.data?.poster && movieResponse.data.poster !== "N/A") 
-                  ? movieResponse.data.poster : '/placeholder.svg',
-                type: movieResponse.data?.type || 'movie',
-                imdbRating: movieResponse.data?.imdbRating
+                title: movieData?.title || 'Unknown Title',
+                year: movieData?.year || 'Unknown',
+                poster: (movieData?.poster && movieData.poster !== "N/A") 
+                  ? movieData.poster : '/placeholder.svg',
+                type: movieData?.type || 'movie',
+                imdbRating: movieData?.imdbRating
               }
             });
           } catch (error) {
@@ -120,13 +112,9 @@ export const WatchlistProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
 
     try {
-      const response = await axios.delete(`https://localhost:7188/api/Movies/remove-from-watchlist?imdbId=${imdbId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.status === 200) {
+      const success = await removeFromWatchlistService(imdbId, token);
+      
+      if (success) {
         setWatchlist(prev => prev.filter(item => item.imdbId !== imdbId));
         return true;
       }

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWatchlist } from '../contexts/WatchlistContext';
 
 const Navigation: React.FC = () => {
-  const { user, logout, isLoading: authLoading } = useAuth();
+  const { user, logout } = useAuth();
   const { watchlist } = useWatchlist();
   const navigate = useNavigate();
 
@@ -24,6 +24,10 @@ const Navigation: React.FC = () => {
           <Link to="/" className="nav-link">
             Search Movies
           </Link>
+          
+          <Link to="/about" className="nav-link">
+            About
+          </Link>
 
           {user ? (
             <>
@@ -33,6 +37,12 @@ const Navigation: React.FC = () => {
                   <span className="watchlist-count">{watchlist.length}</span>
                 )}
               </Link>
+              
+              {user.role?.toLowerCase() === 'admin' && (
+                <Link to="/manage-users" className="nav-link admin-link">
+                  Manage Users
+                </Link>
+              )}
               
               <div className="user-section">
                 <span className="user-greeting">Hello, {user.personName}</span>
