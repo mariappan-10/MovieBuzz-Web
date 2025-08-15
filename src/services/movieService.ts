@@ -9,6 +9,11 @@ export interface Movie {
   poster: string;
 }
 
+export interface SearchResponse {
+  movies: Movie[];
+  totalResults: number;
+}
+
 export interface MovieDetail {
   title: string;
   year: string;
@@ -39,14 +44,30 @@ export interface MovieDetail {
   website: string;
 }
 
-export const searchMovies = async (searchTerm: string, signal?: AbortSignal): Promise<Movie[]> => {
-  const response = await axios.get(
-    `${API_BASE_URL}/Movies/search/${encodeURIComponent(searchTerm)}`,
-    { signal }
-  );
+export const searchMovies = async (searchTerm: string, year?: string, page?: number, signal?: AbortSignal): Promise<SearchResponse> => {
+  let url = `${API_BASE_URL}/Movies/search/${encodeURIComponent(searchTerm)}`;
+  
+  const params = new URLSearchParams();
+  
+  // Add year parameter if provided
+  if (year && year.trim() !== '') {
+    params.append('year', year.trim());
+  }
+  
+  // Add page parameter if provided
+  if (page && page > 0) {
+    params.append('page', page.toString());
+  }
+  
+  // Append parameters to URL if any exist
+  if (params.toString()) {
+    url += `?${params.toString()}`;
+  }
+  
+  const response = await axios.get(url, { signal });
   
   if (response.data && response.data.search) {
-    return response.data.search
+    const filteredMovies = response.data.search
       .filter((movie: Movie) => {
         return movie.poster && 
                movie.poster !== "N/A" && 
@@ -55,9 +76,17 @@ export const searchMovies = async (searchTerm: string, signal?: AbortSignal): Pr
                movie.poster !== "undefined";
       })
       .slice(0, 20);
+    
+    return {
+      movies: filteredMovies,
+      totalResults: parseInt(response.data.totalResults || '0', 10)
+    };
   }
   
-  return [];
+  return {
+    movies: [],
+    totalResults: 0
+  };
 };
 
 export const getMovieDetails = async (imdbId: string): Promise<MovieDetail> => {

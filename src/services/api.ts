@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// export const API_BASE_URL = 'http://localhost:5231/api';
+//export const API_BASE_URL = 'http://localhost:5231/api';
 export const API_BASE_URL = 'https://movie-buzz.azurewebsites.net/api';
 
 const apiClient = axios.create({
