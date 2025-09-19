@@ -59,7 +59,7 @@ const Register: React.FC = () => {
       setSuccess('Registration successful! Please login to continue.');
       setTimeout(() => {
         navigate('/login');
-      }, 2000);
+      }, 3000);
     } else {
       setError('Registration failed. Please try again.');
     }

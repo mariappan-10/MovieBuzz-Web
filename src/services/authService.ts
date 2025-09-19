@@ -8,7 +8,7 @@ export interface User {
   personName: string;
   role?: string;
 }
-
+''
 export interface RegisterData {
   personName: string;
   email: string;
